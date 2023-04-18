@@ -1,7 +1,7 @@
 import type { PlasmoCSConfig } from "plasmo";
 import { useStorage } from "@plasmohq/storage/hook";
 import cssText from "data-text:~style.css";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { createState } from "niue";
 
 export const config: PlasmoCSConfig = {
@@ -30,7 +30,8 @@ const useSettings = () => {
     return useStorage("settings", {
         armed: null as boolean | null,
         autoAuth: false,
-        pin: ""
+        pin: "",
+        for: "All"
     });
 };
 
@@ -73,7 +74,8 @@ export default function Content() {
     }, [settings.armed]);
 
     useEffect(() => {
-        if(document.head.title === "SOLAR is closed - SOLAR") {
+        if(document.head.title === "SOLAR is closed - SOLAR"
+            || settings.for === "All" && document.querySelector("#current-reg-mode") && !(document.querySelector("#current-reg-mode") as HTMLElement).innerText.includes("All courses available")) {
             setTimeout(() => window.location.reload(), 5000);
         }
     }, [])
@@ -101,7 +103,9 @@ function Dialog() {
             <span><strong>Links: </strong> <a href="/" className="text-blue-500 underline">SOLAR main</a> <a href="/class_schedule" className="text-blue-500 underline">Class Schedule</a></span>
             <hr className="my-4" />
             {/* render the Add component if we're on a /class_schedule url, otherwise show the register page */}
-            {window.location.href.includes("/class_schedule") ? <Add /> : <Register />}
+            {window.location.href.includes("/class_schedule") && <Add />}
+            <Register />
+            <TheList />
         </div>
     );
 }
@@ -116,7 +120,7 @@ function Register() {
             <div className="flex flex-row gap-4">
                 <label className="flex flex-col gap-2">
                     <span>Pin</span>
-                    <input className="text-black" type="text" value={settings.pin} onChange={e => setSettings({ ...settings, pin: e.target.value })} />
+                    <input className="text-black max-w-[100px]" type="text" value={settings.pin} onChange={e => setSettings({ ...settings, pin: e.target.value })} />
                 </label>
                 <label className="flex flex-col gap-2">
                     <span>Auto-auth</span>
@@ -126,10 +130,18 @@ function Register() {
                     <span>Armed</span>
                     <input type="checkbox" checked={settings.armed} onChange={e => setSettings({ ...settings, armed: e.target.checked })} />
                 </label>
+                <label className="flex flex-col gap-2">
+                    <span>For</span>
+                    <select className="max-w-[75px] text-black" value={settings.for} onChange={e => setSettings({ ...settings, for: e.target.value })}>
+                        <option value="All">All</option>
+                        <option value="Any">Any</option>
+                    </select>
+                </label>
             </div>
-            <button className="btn-sm bg-green-500" onClick={doRegister}>Register!</button>
+            {!window.location.href.includes("/class_schedule") && (
+                <button className="btn-sm bg-green-500" onClick={doRegister}>Register!</button>
+            )}
             <hr />
-            <TheList />
         </div>
     );
 }
@@ -156,7 +168,7 @@ const useDoRegister = () => {
                 "mode": "cors"
             });
             const t = await req.text();
-            const status = !(t.includes("alert-danger"));
+            const status = !(t.includes("alert-danger") || t.includes("alert-warning"));
             if(!status) {
                 console.error("Error adding course", course, t);
             }
@@ -171,6 +183,23 @@ const useDoRegister = () => {
                         // just show it
                         console.log("Showing", selector);
                         (document.querySelector(selector) as HTMLElement).style.display = "block";
+                    },
+                    fadeOut() {
+                        // just hide it
+                        console.log("Hiding", selector);
+                        (document.querySelector(selector) as HTMLElement).style.display = "none";
+                    },
+                    text(t: string) {
+                        console.log("Setting text of", selector, "to", t);
+                        (document.querySelector(selector) as HTMLElement).innerText = t;
+                    },
+                    hide() {
+                        console.log("Hiding", selector);
+                        (document.querySelector(selector) as HTMLElement).style.display = "none";
+                    },
+                    html(t: string) {
+                        console.log("Setting html of", selector, "to", t);
+                        (document.querySelector(selector) as HTMLElement).outerHTML = t;
                     }
                 }
             };
@@ -266,7 +295,6 @@ function Add() {
             ) : (
                 <p><strong>No course detected on this page.</strong> Try selecting a course from the class schedule.</p>
             )}
-            <TheList />
         </div>
     )
 }
