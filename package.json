@@ -1,8 +1,8 @@
 {
   "name": "solar-pro-mode",
-  "displayName": "Solar pro mode",
-  "version": "0.0.1",
-  "description": "SOLAR pro mode - get the classes you want",
+  "displayName": "SOLAR Pro Mode",
+  "version": "0.0.3",
+  "description": "SOLAR Pro Mode - get the classes you want",
   "author": "me",
   "scripts": {
     "dev": "plasmo dev",
@@ -10,22 +10,32 @@
     "package": "plasmo package"
   },
   "dependencies": {
+    "@plasmohq/storage": "^1.5.0",
+    "niue": "^0.2.0",
     "plasmo": "0.68.3",
     "react": "18.2.0",
     "react-dom": "18.2.0"
   },
   "devDependencies": {
+    "@plasmohq/prettier-plugin-sort-imports": "3.6.4",
     "@types/chrome": "0.0.227",
     "@types/node": "18.15.11",
     "@types/react": "18.0.32",
     "@types/react-dom": "18.0.11",
+    "autoprefixer": "^10.4.14",
+    "postcss": "^8.4.22",
     "prettier": "2.8.7",
-    "typescript": "5.0.3",
-    "@plasmohq/prettier-plugin-sort-imports": "3.6.4"
+    "tailwindcss": "^3.3.1",
+    "typescript": "5.0.3"
   },
   "manifest": {
     "host_permissions": [
       "https://*/*"
-    ]
+    ],
+    "browser_specific_settings": {
+      "gecko": {
+        "id": "solar@hacker.hack"
+      }
+    }
   }
 }
