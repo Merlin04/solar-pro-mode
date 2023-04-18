@@ -1,5 +1,7 @@
 # SOLAR Pro Mode 🌞👨‍💻
 
+![image](https://user-images.githubusercontent.com/11800751/232908437-e4e29c3d-7959-489b-89d4-4524998215c1.png)
+
 Get the Reed College classes you want. Add courses in advance from the class schedule, then as soon as SOLAR opens you'll be signed in (without having to dig around for your PIN) and automatically registered for everything on your list.
 
 ## How to use
@@ -8,7 +10,7 @@ Get the Reed College classes you want. Add courses in advance from the class sch
 
 Once installed, you'll see a button in the bottom right corner of any SOLAR page to open the Pro Mode popup. Go to the SOLAR class schedule (linked in the popup), find a class you want, click on the name to open the popup with the class info, then click the "Add to List" button in the Pro Mode popup. Repeat for all the classes you want to register for. You can rearrange the classes in your list with the up and down buttons; when you register, Pro Mode will try to register for the classes in order of top to bottom. 
 
-You'll also need to configure the registration parameters - paste your SOLAR pin into the `PIN` field. check `Auto-auth` to automatically sign in with your PIN. If SOLAR is closed and you want to register once it opens, set `For` to "Any"; if it's currently open (for example, if you already did first-choice registration), choose "All". 
+You'll also need to configure the registration parameters - paste your SOLAR pin into the `PIN` field. check `Auto-auth` to automatically sign in with your PIN. If SOLAR is closed and you want to register once it opens, set `For` to "Any"; if it's currently open (for example, if you already did first-choice registration), choose "All". All values automatically save when you change them.
 
 Finally, click the `Armed` checkbox. This will make the extension automatically attempt registration once you visit the main SOLAR page (not the class schedule). While there generally isn't harm in trying to register before SOLAR opens, it's best to not do so. If you want, you can leave this unchecked - that just means you'll need to click the "register" button in the popup manually.
 
