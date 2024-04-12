@@ -1,7 +1,7 @@
 {
   "name": "solar-pro-mode",
   "displayName": "SOLAR Pro Mode",
-  "version": "0.0.4",
+  "version": "0.0.10",
   "description": "SOLAR Pro Mode - get the classes you want",
   "author": "me",
   "scripts": {
@@ -30,12 +30,22 @@
   },
   "manifest": {
     "host_permissions": [
-      "https://*/*"
+      "https://solar.reed.edu/*"
     ],
     "browser_specific_settings": {
       "gecko": {
         "id": "solar@hacker.hack"
       }
-    }
+    },
+    "web_accessible_resources": [
+      {
+        "resources": [
+          "assets/hook.js"
+        ],
+        "matches": [
+          "https://solar.reed.edu/*"
+        ]
+      }
+    ]
   }
 }

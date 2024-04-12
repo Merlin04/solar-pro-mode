@@ -44,6 +44,8 @@ getCourse().then(c => patch({ pageCourse: c }));
 
 let lastArmed = null;
 
+let isClosed = () => document.head.getElementsByTagName("title")[0].innerText.includes("SOLAR is closed");
+
 export default function Content() {
     const { active } = useStore();
     const [settings, setSettings] = useSettings();
@@ -68,20 +70,20 @@ export default function Content() {
     useEffect(() => {
         if(lastArmed !== null) return;
         lastArmed = settings.armed;
-        if(window.location.href === "https://solar.reed.edu/" && settings.armed && document.head.title !== "SOLAR is closed - SOLAR") {
+        if(window.location.href === "https://solar.reed.edu/" && settings.armed && !isClosed()) {
             doRegister();
         }
     }, [settings.armed]);
 
     useEffect(() => {
-        if(document.head.title === "SOLAR is closed - SOLAR"
-            || settings.for === "All" && document.querySelector("#current-reg-mode") && !(document.querySelector("#current-reg-mode") as HTMLElement).innerText.includes("All courses available")) {
+        if(settings.armed && (isClosed()
+            || settings.for === "All" && document.querySelector("#current-reg-mode") && !(document.querySelector("#current-reg-mode") as HTMLElement).innerText.includes("All courses available"))) {
             setTimeout(() => window.location.reload(), 5000);
         }
-    }, [])
+    }, [settings.armed])
     
     return (
-        <div className="fixed right-8 bottom-8">
+        <div className="fixed right-8 bottom-8 max-h-[calc(100%-3rem)] overflow-auto">
             {active ? (
                 <Dialog />
             ) : (
@@ -100,8 +102,10 @@ function Dialog() {
                 <h1 className="text-lg text-center">SOLAR Pro Mode 🌞👨‍💻</h1>
                 <span className="cursor-pointer select-none hover:italic" onClick={() => patch({ active: false })}>[x]</span>
             </div>
-            <span><strong>Links: </strong> <a href="/" className="text-blue-500 underline">SOLAR main</a> <a href="/class_schedule" className="text-blue-500 underline">Class Schedule</a></span>
-            <hr className="my-4" />
+            <span><strong>Links: </strong> <a href="https://github.com/Merlin04/solar-pro-mode/blob/main/README.md#how-to-use" className="text-blue-500 underline font-bold">Instruction manual</a> <a
+                href="/" className="text-blue-500 underline">SOLAR main</a> <a href="/class_schedule"
+                                                                               className="text-blue-500 underline">Class Schedule</a></span>
+            <hr className="my-4"/>
             {/* render the Add component if we're on a /class_schedule url, otherwise show the register page */}
             {window.location.href.includes("/class_schedule") && <Add />}
             <Register />
@@ -117,7 +121,7 @@ function Register() {
     return (
         <div className="flex flex-col gap-4">
             <p><strong>Registration parameters</strong></p>
-            <div className="flex flex-row gap-4">
+            <div className="flex flex-row flex-wrap gap-4">
                 <label className="flex flex-col gap-2">
                     <span>Pin</span>
                     <input className="text-black max-w-[100px]" type="text" value={settings.pin} onChange={e => setSettings({ ...settings, pin: e.target.value })} />
@@ -131,10 +135,11 @@ function Register() {
                     <input type="checkbox" checked={settings.armed} onChange={e => setSettings({ ...settings, armed: e.target.checked })} />
                 </label>
                 <label className="flex flex-col gap-2">
-                    <span>For</span>
-                    <select className="max-w-[75px] text-black" value={settings.for} onChange={e => setSettings({ ...settings, for: e.target.value })}>
-                        <option value="All">All</option>
-                        <option value="Any">Any</option>
+                    <span>Register when SOLAR is in:</span>
+                    <select className="text-black" value={settings.for}
+                            onChange={e => setSettings({ ...settings, for: e.target.value })}>
+                        <option value="Any">partial registration mode (registering for first choice)</option>
+                        <option value="All">open registration mode (registering for the rest of your classes)</option>
                     </select>
                 </label>
             </div>
@@ -228,21 +233,8 @@ const useDoRegister = () => {
     }
 }
 
-function hookFn() {
-    /* this function will be injected as a string */
-    /* not run in the extension context */
-    /* we can't reference anything outside or use single-line comments */
-    const old = window["showCourseInfoInDialog"];
-    window["showCourseInfoInDialog"] = function(...args) {
-        old(...args);
-        const [ url ] = args;
-        document.dispatchEvent(new CustomEvent("plasmo:showCourseInfoInDialog", { detail: url }));
-    };
-}
-
 const sc = document.createElement("script");
-sc.innerText = `(${hookFn.toString()})()`;
-console.log(sc.innerText);
+sc.src = chrome.runtime.getURL("assets/hook.js");
 document.body.appendChild(sc);
 
 async function getCourse(href: string = window.location.href): Promise<Course | null> {
@@ -293,7 +285,7 @@ function Add() {
                     }}>Add to list</button>
                 </>
             ) : (
-                <p><strong>No course detected on this page.</strong> Try selecting a course from the class schedule.</p>
+                <p><strong>No course detected on this page.</strong> Try selecting a course from the class schedule (click on its name in the table). If it still doesn't work, reload, open this dialog, and then try clicking the course</p>
             )}
         </div>
     )
