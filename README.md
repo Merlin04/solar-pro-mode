@@ -4,6 +4,8 @@
 
 Get the Reed College classes you want. Add courses in advance from the class schedule, then as soon as SOLAR opens you'll be signed in (without having to dig around for your PIN) and automatically registered for everything on your list.
 
+**SOLAR Pro Mode is USE AT YOUR OWN RISK. I am not liable if this breaks and doesn't work properly or if CUS gets upset. I don't think either of those things are likely (they haven't happened so far in the ~1 yr of this extension's existence [as of writing this] + me using it for multiple registrations) but it's a possibility.**
+
 ## How to use
 
 ### Before registration day
@@ -19,6 +21,8 @@ Finally, click the `Armed` checkbox. This will make the extension automatically 
 A few minutes before registration, open the class schedule page and ensure your settings are properly configured. If they are, head to the main SOLAR page (linked in the popup), and check the `Armed` checkbox. The page should start reloading every few seconds until registration opens. The extension will attempt to register as soon as it sees that it can. 
 
 There's a chance (especially if SOLAR is already open for registration for some classes, but not others) that the extension doesn't detect that you're unable to register for the classes in your list yet, meaning it will attempt to automatically register before SOLAR is in the necessary state. If that's the case, you can just leave the page open and reload it once SOLAR opens (you can check in a private browsing window with the extension disabled).
+
+There's also a chance that the extension doesn't realize that you *are* able to register for classes (if you have registration mode set to "open registration mode"); in that case, you'll need to click the register button manually.
 
 During the automatic registration you'll probably see a bunch of status messages at the top. Once the process completes, you'll get an alert with a summary of which courses could or could not be registered. You can open the browser developer tools to see more detailed errors.
 

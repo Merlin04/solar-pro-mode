@@ -44,7 +44,12 @@ getCourse().then(c => patch({ pageCourse: c }));
 
 let lastArmed = null;
 
-let isClosed = () => document.head.getElementsByTagName("title")[0].innerText.includes("SOLAR is closed");
+let isClosed = (settings: ReturnType<typeof useSettings>[0]) => document.head.getElementsByTagName("title")[0].innerText.includes("closed")
+    || (
+        settings.for === "All" &&
+        document.querySelector("#current-reg-mode") &&
+        !(document.querySelector("#current-reg-mode") as HTMLElement).innerText.includes("All courses available")
+    );
 
 export default function Content() {
     const { active } = useStore();
@@ -70,14 +75,13 @@ export default function Content() {
     useEffect(() => {
         if(lastArmed !== null) return;
         lastArmed = settings.armed;
-        if(window.location.href === "https://solar.reed.edu/" && settings.armed && !isClosed()) {
+        if(window.location.href === "https://solar.reed.edu/" && settings.armed && !isClosed(settings)) {
             doRegister();
         }
     }, [settings.armed]);
 
     useEffect(() => {
-        if(settings.armed && (isClosed()
-            || settings.for === "All" && document.querySelector("#current-reg-mode") && !(document.querySelector("#current-reg-mode") as HTMLElement).innerText.includes("All courses available"))) {
+        if(settings.armed && isClosed(settings)) {
             setTimeout(() => window.location.reload(), 5000);
         }
     }, [settings.armed])
