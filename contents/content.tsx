@@ -37,18 +37,22 @@ const useSettings = () => {
 
 const [useStore, patch] = createState({
     active: false,
-    pageCourse: null as Course | null
+    pageCourse: null as Course | null,
+    isAutoRegistering: false,
+    isRegistrationComplete: false
 });
 
 getCourse().then(c => patch({ pageCourse: c }));
 
 let lastArmed = null;
 
+const regModeRegex = /(.*All courses available.*)|(.*You may ADD, DROP or waitlist fall \d+ and spring \d+ courses.*)/;
+
 let isClosed = (settings: ReturnType<typeof useSettings>[0]) => document.head.getElementsByTagName("title")[0].innerText.includes("closed")
     || (
         settings.for === "All" &&
         document.querySelector("#current-reg-mode") &&
-        !(document.querySelector("#current-reg-mode") as HTMLElement).innerText.includes("All courses available")
+        !(document.querySelector("#current-reg-mode") as HTMLElement).innerText.match(regModeRegex)
     );
 
 export default function Content() {
@@ -120,10 +124,18 @@ function Dialog() {
 
 function Register() {
     const [settings, setSettings] = useSettings();
+    const { isAutoRegistering, isRegistrationComplete } = useStore();
     const doRegister = useDoRegister();
 
     return (
         <div className="flex flex-col gap-4">
+            { isRegistrationComplete ? (
+                <p className="text-black bg-white font-bold p-2">Finished auto-registration. If it didn&apos;t work, try again by reloading the page/clicking register (or register manually; there&apos;s a chance something in SOLAR changed that broke the extension)</p>
+            ) : isAutoRegistering ? (
+                <p className="text-green-500 bg-white font-bold p-2">Auto-registration in progress...</p>
+            ) : (
+                <p className="text-red-500 bg-white font-bold p-2">Not currently in the process of auto-registering. If you expected to be registering right now, click the green Register button.</p>
+            ) }
             <p><strong>Registration parameters</strong></p>
             <div className="flex flex-row flex-wrap gap-4">
                 <label className="flex flex-col gap-2">
@@ -159,6 +171,8 @@ const useDoRegister = () => {
     const [courses] = useCourses();
 
     return async function doRegister() {
+        patch({ active: true, isAutoRegistering: true, isRegistrationComplete: false });
+    
         // register for each of the classes in the list
         const statuses: { [key: string]: boolean } = {};
     
@@ -185,30 +199,42 @@ const useDoRegister = () => {
             let $ = (selector) => {
                 return {
                     replaceWith(html) {
-                        console.log("Replacing", selector, "with", html);
-                        (document.querySelector(selector) as HTMLElement).outerHTML = html.replaceAll(" fade", "");
+                        try {
+                            console.log("Replacing", selector, "with", html);
+                            (document.querySelector(selector) as HTMLElement).outerHTML = html.replaceAll(" fade", "");
+                        } catch(err) { console.warn(err); }
                     },
                     fadeIn() {
                         // just show it
-                        console.log("Showing", selector);
-                        (document.querySelector(selector) as HTMLElement).style.display = "block";
+                        try {
+                            console.log("Showing", selector);
+                            (document.querySelector(selector) as HTMLElement).style.display = "block";
+                        } catch(err) { console.warn(err); }
                     },
                     fadeOut() {
                         // just hide it
-                        console.log("Hiding", selector);
-                        (document.querySelector(selector) as HTMLElement).style.display = "none";
+                        try {
+                            console.log("Hiding", selector);
+                            (document.querySelector(selector) as HTMLElement).style.display = "none";
+                        } catch(err) { console.warn(err); }
                     },
                     text(t: string) {
-                        console.log("Setting text of", selector, "to", t);
-                        (document.querySelector(selector) as HTMLElement).innerText = t;
+                        try {
+                            console.log("Setting text of", selector, "to", t);
+                            (document.querySelector(selector) as HTMLElement).innerText = t;
+                        } catch(err) { console.warn(err); }
                     },
                     hide() {
-                        console.log("Hiding", selector);
-                        (document.querySelector(selector) as HTMLElement).style.display = "none";
+                        try {
+                            console.log("Hiding", selector);
+                            (document.querySelector(selector) as HTMLElement).style.display = "none";
+                        } catch(err) { console.warn(err); }
                     },
                     html(t: string) {
-                        console.log("Setting html of", selector, "to", t);
-                        (document.querySelector(selector) as HTMLElement).outerHTML = t;
+                        try {
+                            console.log("Setting html of", selector, "to", t);
+                            (document.querySelector(selector) as HTMLElement).outerHTML = t;
+                        } catch(err) { console.warn(err); }
                     }
                 }
             };
@@ -234,6 +260,8 @@ const useDoRegister = () => {
         // show a message with the results (alert)
         alert("Registration status"
         + Object.entries(statuses).map(([name, status]) => `\n${name}: ${status ? "✅" : "❌"}`).join("") + "\nSee console for error messages.");
+        
+        patch({ isRegistrationComplete: true });
     }
 }
 
