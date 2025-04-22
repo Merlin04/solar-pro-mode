@@ -95,7 +95,7 @@ export default function Content() {
             {active ? (
                 <Dialog />
             ) : (
-                <button className="bg-gray-800 text-white hover:italic p-4 rounded-full text-xl opacity-90" onClick={() => patch({ active: true })}>
+                <button className="bg-gray-800 text-white p-4 rounded-full text-xl opacity-90" onClick={() => patch({ active: true })}>
                     🌞👨‍💻
                 </button>
             )}
@@ -167,6 +167,8 @@ function Register() {
     );
 }
 
+const AUTHENTICITY_TOKEN = "authenticity_token";
+
 const useDoRegister = () => {
     const [courses] = useCourses();
 
@@ -175,23 +177,119 @@ const useDoRegister = () => {
     
         // register for each of the classes in the list
         const statuses: { [key: string]: boolean } = {};
+
+        const termSearchCache: { [term: string]: string } = {};
+
+        debugger;
     
         const registerForOne = async (course: Course) => {
+            // steps
+            // - request solar page for term
+            // - get authenticity token for search
+            // - make search request for matching subject and course number
+            // - find the add button corresponding to the request we want to make
+            // - get the token, send request
+
+            const tokenFromForm = (f: HTMLFormElement) => (new FormData(f)).get(AUTHENTICITY_TOKEN).toString();
+
+            const search_token = await (async () => {
+                if(termSearchCache[course.termId]) return termSearchCache[course.termId];
+
+                const getToken = (doc: Document) => {
+                    const f = doc.getElementById("new_search") as HTMLFormElement;
+                    const t = tokenFromForm(f);
+                    termSearchCache[course.termId] = t;
+                    return t;
+                }
+
+                const f = document.getElementById("new_search") as HTMLFormElement;
+                if(f.action.includes(course.termId)) {
+                    return getToken(document);
+                }
+
+                const page = await fetch(`https://solar.reed.edu/scheduler/${course.termId}`).then(res => res.text());
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(page, "text/html");
+                return getToken(doc);
+            })();
+
+            // jank
+            const s = course.name.split(" ");
+            const subject_code = s[0];
+            const course_number = s[1];
+
+            const add_token = await (async () => {
+                const js = await fetch(`https://solar.reed.edu/scheduler/${course.termId}/search`, {
+                    "credentials": "include",
+                    "headers": {
+                        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+                        "Accept": "*/*;q=0.5, text/javascript, application/javascript, application/ecmascript, application/x-ecmascript",
+                        "X-Requested-With": "XMLHttpRequest",
+                    },
+                    "referrer": `https://solar.reed.edu/scheduler/${course.termId}`,
+                    "body": `authenticity_token=${encodeURIComponent(search_token)}&search%5Bsubject_code%5D=${encodeURIComponent(subject_code)}&search%5Bcourse_number%5D=${encodeURIComponent(course_number)}&search%5Bdistribution_group%5D=&search%5Bduration%5D=&search%5Bavailable_seats%5D=0&search%5Bno_prereqs%5D=0`,
+                    "method": "POST",
+                    "mode": "cors"
+                }).then(res => res.text());
+
+                const extract_from_js = async (js: string): Promise<string> => {
+                    let search_html: string | undefined;
+                    let $= (selector) => new Proxy({}, {
+                        get(_, prop) {
+                            if(selector === "#search_results") {
+                                return s => { search_html = s; };
+                            }
+                            return () => {};
+                        }
+                    });
+                    (new Function("$", js))($);
+                    if(!search_html) {
+                        throw new Error("Couldn't extract search HTML");
+                    }
+
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(search_html, "text/html");
+                    
+                    const f = doc.querySelector(`form[action="/scheduler/${course.termId}/add/${course.courseId}"]`) as HTMLFormElement | null;
+                    if(f) return tokenFromForm(f);
+
+                    let next_href = doc.querySelector<HTMLAnchorElement>(".pagination .next_page")?.href;
+                    if(!next_href) throw new Error("Unable to find course add form");
+
+                    const next_js = await fetch(next_href, {
+                        "credentials": "include",
+                        "headers": {
+                            "Accept": "*/*;q=0.5, text/javascript, application/javascript, application/ecmascript, application/x-ecmascript",
+                            "Accept-Language": "en-US,en;q=0.5",
+                            "X-Requested-With": "XMLHttpRequest"
+                        },
+                        "referrer": `https://solar.reed.edu/scheduler/${course.termId}`,
+                        "method": "GET",
+                        "mode": "cors"
+                    }).then(res => res.text());
+                    return await extract_from_js(next_js);
+                };
+
+                return await extract_from_js(js);
+            })();
+
+
             const req = await fetch(`https://solar.reed.edu/scheduler/${course.termId}/add/${course.courseId}`, {
                 "credentials": "include",
                 "headers": {
                     "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/111.0",
                     "Accept": "*/*;q=0.5, text/javascript, application/javascript, application/ecmascript, application/x-ecmascript",
                     "Accept-Language": "en-US,en;q=0.5",
-                    "X-CSRF-Token": document.querySelector("meta[name='csrf-token']")?.getAttribute("content") || "",
+                    "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
                     "X-Requested-With": "XMLHttpRequest"
                 },
                 "referrer": `https://solar.reed.edu/scheduler/${course.termId}`,
+                "body": `authenticity_token=${encodeURIComponent(add_token)}`,
                 "method": "POST",
                 "mode": "cors"
             });
             const t = await req.text();
-            const status = !(t.includes("alert-danger") || t.includes("alert-warning"));
+            const status = req.status !== 200 || !(t.includes("alert-danger") || t.includes("alert-warning"));
             if(!status) {
                 console.error("Error adding course", course, t);
             }
@@ -252,7 +350,12 @@ const useDoRegister = () => {
                     console.log("Retrying", course.name);
                     await new Promise(r => setTimeout(r, 500)); // wait a bit, sometimes the server gets sad
                 }
-                await registerForOne(course);
+                try {
+                    await registerForOne(course);
+                } catch(err) {
+                    console.error(err);
+                    statuses[course.name] = false;
+                }
                 attempts++;
             }
         }
